@@ -9,7 +9,9 @@ class Ghost(Agent):
         super().__init__(model.next_id(), model)
         self.pos = pos
     def step(self):
-        pass
+        next_moves = self.model.grid.get_neighborhood(self.pos, moore=False)
+        next_move = self.random.choice(next_moves)
+        self.model.grid.move_agent(self, next_move)
 
 class Maze(Model):
     def __init__(self):
@@ -25,7 +27,7 @@ class Maze(Model):
         self.schedule.step()
 
 def agent_portrayal(agent):
-    return {"Shape": "circle", "r": 1, "Filled": "true", "Color": "Orange", "Layer": 0}
+  return {"Shape": "ghost2.png", "Layer": 0}
 
 grid = CanvasGrid(agent_portrayal, 17, 14, 450, 450)
 
