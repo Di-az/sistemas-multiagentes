@@ -4,23 +4,30 @@ from mesa.time import RandomActivation
 from mesa.visualization.modules import CanvasGrid
 from mesa.visualization.ModularVisualization import ModularServer
 
+from pathfinding.core.diagonal_movement import DiagonalMovement
+from pathfinding.core.grid import Grid as GridPathFinding
+from pathfinding.finder.a_star import AStarFinder
+
 class Ghost(Agent):
-    def __init__(self, model, pos, matrix):
+    def __init__(self, model, pos, path):
         super().__init__(model.next_id(), model)
         self.pos = pos
-        self.matrix = matrix
+        self.path = path
 
     def step(self):
-        next_moves = self.model.grid.get_neighborhood(self.pos, moore=False)
-        next_moves_copy = [] # array to save the possible moves
-        for (x,y) in next_moves:
-            if self.matrix[y][x] == 1:
-                next_moves_copy.append((x,y))
-                
-        next_move = self.random.choice(next_moves_copy)
+        if self.path == []:
+            return
+
+        next_move = self.path[0]
+        del self.path[0]
         self.model.grid.move_agent(self, next_move)
 
 class WallBlock(Agent):
+    def __init__(self, model, pos):
+        super().__init__(model.next_id(), model)
+        self.pos = pos
+
+class Pacman(Agent):
     def __init__(self, model, pos):
         super().__init__(model.next_id(), model)
         self.pos = pos
@@ -48,8 +55,19 @@ class Maze(Model):
         [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
         ]
 
+        # finding the shortest path from ghost to pacman
+        gridPath = GridPathFinding(matrix=matrix)
+        start = gridPath.node(1, 1)
+        end = gridPath.node(9, 6)
+        finder = AStarFinder(diagonal_movement=DiagonalMovement.never)
+        path, _ = finder.find_path(start, end, gridPath)
 
-        ghost = Ghost(self, (1, 1), matrix)
+        # creating agent Pacman
+        pacman = Pacman(self, (9,6)) 
+        self.grid.place_agent(pacman, pacman.pos)     
+
+        # creating agent Ghost
+        ghost = Ghost(self, (1, 1), path)
         self.grid.place_agent(ghost, ghost.pos)
         self.schedule.add(ghost)
 
@@ -66,6 +84,8 @@ def agent_portrayal(agent):
     # render a different object from each agent
     if isinstance(agent, Ghost):
         return {"Shape": "ghost2.png", "Layer": 0}
+    if isinstance(agent, Pacman):
+        return {"Shape": "pacman.png", "Layer": 0}
     if isinstance(agent, WallBlock):
         return {"Shape": "rect", "w": 1, "h": 1, "Filled": "true", "Color": "Gray", "Layer": 1}
 
