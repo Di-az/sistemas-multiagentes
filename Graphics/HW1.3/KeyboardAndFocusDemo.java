@@ -1,3 +1,9 @@
+// Programa que renderiza las transformaciones hechas a un avion
+// Carlos Daniel Diaz Arrazate - A01734902
+// Jose Angel Gonzalez Carrera - A01552274
+// Carlos Eduardo Ruiz Lira - A01735706
+// 11/11/22
+
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
@@ -34,6 +40,7 @@ public class KeyboardAndFocusDemo extends JApplet
       scale = 1;
       centroid_x = 59.2409475603279f;
       centroid_y = 76.0100070402073f;
+      centroid_z = 1f;
 
       plane_x = new float[] { 20, 20, 28, 9, 9, 26, 34, 28, 28, 105, 110, 105, 60, 55,
             55, 60, 60, 55, 63, 156, 165, 165, 156, 63, 55, 60, 60, 55, 55, 60, 105, 110,
@@ -43,8 +50,8 @@ public class KeyboardAndFocusDemo extends JApplet
             136, 100, 100, 91, 88, 86, 80, 77, 74, 70, 65, 62, 60, 51, 49, 13, 11,
             11, 9, 7, 7, 8, 11, 11, 51, 51, 59, 59, 65, 75 };
 
-      plane_z = new float[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+      plane_z = new float[] { 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+            1,1,1,1,1,1,1,1,1,1,1,1 };
 
       original_plane_x = new float[43];
       original_plane_y = new float[43];
@@ -104,13 +111,10 @@ public class KeyboardAndFocusDemo extends JApplet
 
          int[] x = new int[43];
          int[] y = new int[43];
-         // int[] mem_x = new int[43];
-         // int[] mem_y = new int[43];
+
          for (int i = 0; i < 43; i++) {
             x[i] = (int) plane_x[i];
             y[i] = (int) plane_y[i];
-            // mem_x[i] = (int) original_plane_x[i];
-            // mem_y[i] = (int) original_plane_y[i];
          }
 
          g.drawPolyline(x, y, 43);
@@ -169,20 +173,49 @@ public class KeyboardAndFocusDemo extends JApplet
 
    public void calculate() {
 
+      // Move centroid from point P to origin
+      // Scale figure
+      // Rotate figure
+      // return centroid to positon P
+      ////Time Complexity O(1) (There are only 43 elements, or 0(n) depending on the number of points given)
+      
       for (int i = 0; i < 43; i++) {
-         original_plane_x[i] -= centroid_x;
-         original_plane_y[i] -= centroid_y;
+         // Translation
+         // [x']   | 1 0 dx |    | x |  | x + dx|
+         // [y'] = | 0 1 dy | x | y | = | y + dy|
+         // [1]    | 0 0 1  |   | 1 | = | 1 |
+         original_plane_x[i] = original_plane_x[i] - centroid_x;
+         original_plane_y[i] = original_plane_y[i] - centroid_y;
+         original_plane_z[i] = 1;
+
+         // Scaling
+         // [x']   | sx 0 0 |    | x |  | x *sx|
+         // [y'] = | 0 xy 0 | x | y | = | y*sy|
+         // [1]    | 0 0 1  |   | 1 | = | 1 |
+
          plane_x[i] = original_plane_x[i] * scale;
          plane_y[i] = original_plane_y[i] * scale;
+         plane_z[i] = 1;
+
+         // Rotation
+         // [x']   | cos -sin 0 |    | x |  | cosx-siny|
+         // [y'] = | sin cos 0 | x | y | = | sinx+cosy|
+         // [1]    | 0    0  1 |   | 1 | = | 1 |
+         
          float temp_x = plane_x[i];
          plane_x[i] = (float) ((Math.cos(Math.toRadians(rotation)) * plane_x[i])
                - (Math.sin(Math.toRadians(rotation)) * plane_y[i]));
          plane_y[i] = (float) ((Math.sin(Math.toRadians(rotation)) * temp_x)
                + (Math.cos(Math.toRadians(rotation)) * plane_y[i]));
-         plane_x[i] += centroid_x;
-         plane_y[i] += centroid_y;
-         original_plane_x[i] += centroid_x;
-         original_plane_y[i] += centroid_y;
+         plane_z[i] = 1;
+         
+         plane_x[i] = plane_x[i] + centroid_x;
+         plane_y[i] = plane_y[i] + centroid_y;
+         plane_z[i] = 1;
+ 
+         original_plane_x[i] = original_plane_x[i] + centroid_x;
+         original_plane_y[i] = original_plane_y[i] + centroid_y;
+         original_plane_z[i] = 1;
       }
 
    }
@@ -197,10 +230,6 @@ public class KeyboardAndFocusDemo extends JApplet
       int key = evt.getKeyCode(); // keyboard code for the key that was pressed
 
       if (key == KeyEvent.VK_LEFT) {
-         // Move centroid from point P to origin
-         // Scale figure
-         // Rotate figure
-         // return centroid to positon P
          calculate();
 
          double radian = Math.toRadians(180 - (90 + rotation));
@@ -208,12 +237,16 @@ public class KeyboardAndFocusDemo extends JApplet
          for (int i = 0; i < 43; i++) {
             plane_x[i] -= (float) 8 * (-Math.cos(radian));
             plane_y[i] -= (float) 8 * Math.sin(radian);
+            plane_z[i] = 1;
             original_plane_x[i] -= (float) 8 * (-Math.cos(radian));
             original_plane_y[i] -= (float) 8 * Math.sin(radian);
+            original_plane_z[i] = 1;
          }
 
          centroid_x -= (float) 8 * (-Math.cos(radian));
          centroid_y -= (float) 8 * Math.sin(radian);
+         centroid_z = 1;
+
 
          canvas.repaint();
       } else if (key == KeyEvent.VK_RIGHT) {
@@ -225,12 +258,15 @@ public class KeyboardAndFocusDemo extends JApplet
          for (int i = 0; i < 43; i++) {
             plane_x[i] += (float) 8 * (-Math.cos(radian));
             plane_y[i] += (float) 8 * Math.sin(radian);
+            plane_z[i] = 1;
             original_plane_x[i] += (float) 8 * (-Math.cos(radian));
             original_plane_y[i] += (float) 8 * Math.sin(radian);
+            original_plane_z[i] = 1;
          }
 
          centroid_x += (float) 8 * (-Math.cos(radian));
          centroid_y += (float) 8 * Math.sin(radian);
+         centroid_z = 1;
 
          canvas.repaint();
       } else if (key == KeyEvent.VK_UP) {
@@ -242,12 +278,16 @@ public class KeyboardAndFocusDemo extends JApplet
          for (int i = 0; i < 43; i++) {
             plane_x[i] += (float) 8 * Math.cos(radians);
             plane_y[i] += (float) 8 * Math.sin(radians);
+            plane_z[i] = 1;
             original_plane_x[i] += (float) 8 * Math.cos(radians);
             original_plane_y[i] += (float) 8 * Math.sin(radians);
+            original_plane_z[i] = 1;
          }
 
          centroid_x += (float) 8 * Math.cos(radians);
          centroid_y += (float) 8 * Math.sin(radians);
+         centroid_z = 1;
+
 
          canvas.repaint();
       } else if (key == KeyEvent.VK_DOWN) {
@@ -259,12 +299,16 @@ public class KeyboardAndFocusDemo extends JApplet
          for (int i = 0; i < 43; i++) {
             plane_x[i] -= (float) 8 * Math.cos(radians);
             plane_y[i] -= (float) 8 * Math.sin(radians);
+            plane_z[i] = 1;
             original_plane_x[i] -= (float) 8 * Math.cos(radians);
             original_plane_y[i] -= (float) 8 * Math.sin(radians);
+            original_plane_z[i] = 1;
          }
 
          centroid_x -= (float) 8 * Math.cos(radians);
          centroid_y -= (float) 8 * Math.sin(radians);
+         centroid_z = 1;
+
 
          canvas.repaint();
       } else if (key == KeyEvent.VK_R || key == KeyEvent.VK_F) {
@@ -283,7 +327,7 @@ public class KeyboardAndFocusDemo extends JApplet
 
          canvas.repaint();
       } else if (key == KeyEvent.VK_E || key == KeyEvent.VK_D) {
-         if (key == KeyEvent.VK_E) {
+         if (key == KeyEvent.VK_D) {
             if (rotation == 350)
                rotation = 0;
             else
