@@ -1,7 +1,8 @@
 
 import java.awt.*;
 import java.awt.event.*;
-import java.text.ParseException;
+import java.io.FileWriter;
+import java.io.IOException;
 
 import javax.swing.*;
 
@@ -26,8 +27,8 @@ public class WireframeJApplet extends JApplet
    // int mx, my;  // the most recently recorded mouse coordinates
 
    int azimuth = 0, elevation = 0;
-   int meridianos = 20, paralelos = 20;
-   float radius = 1;
+   int meridianos, paralelos;
+   float radius;
 
    Point3D[] vertices;
    Edge[] edges;
@@ -46,69 +47,69 @@ public class WireframeJApplet extends JApplet
                                  return (float) (ostart + (ostop - ostart) * (division));
                               }  
 
-   public void init() {
+   public void init(float r,int m,int p) {
 
-      vertices = new Point3D[meridianos*paralelos];
+      radius = r;
+      meridianos = 2*m;
+      paralelos = p;
+
+      vertices = new Point3D[(meridianos+1)*(paralelos+1)];
       int count = 0;
 
-      for(int i = 0; i < meridianos; i++){
-         float longitude = map(i,0, meridianos, -Math.PI, Math.PI);
-         for(int j = 0; j < paralelos; j++) {
-            float latitude = map(j,0,paralelos,-(Math.PI/2),Math.PI/2);
-            
-            float x = (float) (radius * Math.sin(longitude) * Math.cos(latitude));
-            float y = (float) (radius * Math.sin(longitude) * Math.sin(latitude));
-            float z = (float) (radius * Math.cos(longitude));
-            
-            vertices[count] = new Point3D(x, y, z);
-            count++;
+      try {
+         FileWriter myWriter = new FileWriter("vertex.txt");
+
+         for(int i = 0; i < paralelos+1; i++){
+            float latitude = map(i,0, paralelos, 0, Math.PI);
+   
+            for(int j = 0; j < meridianos+1; j++) {
+               float longitude = map(j,0,meridianos,0, 2*Math.PI);
+               
+               float x = (float) (radius * Math.sin(latitude) * Math.cos(longitude));
+               float y = (float) (radius * Math.sin(latitude) * Math.sin(longitude));
+               float z = (float) (radius * Math.cos(latitude));
+               
+               myWriter.write("Count: " +count + " -> ("+x+", "+y+","+z+")\n");
+               vertices[count] = new Point3D(x, y, z);
+               count++;
+            }
          }
+         myWriter.close();
+
+      } catch (IOException e) {
+         // TODO Auto-generated catch block
+         e.printStackTrace();
       }
 
-      int size = 4*((meridianos-1)*(paralelos-1));
-      edges = new Edge[size];
+
+      edges = new Edge[2*meridianos*paralelos];
       count = 0;
+      int vertex = 0;
 
-      for(int i = 0; i < meridianos-1; i++){
-         for(int j = 0; j < paralelos-1; j++) {
+      try {
+         FileWriter myWriter = new FileWriter("edges.txt");
 
-            int currPos = j + (i*meridianos);
-            //to left
-            edges[count] = new Edge(currPos, currPos+1);
-            count++;
-            //up
-            edges[count] = new Edge(currPos,currPos+meridianos);
-            count++;
-            //up-left
-            edges[count] = new Edge(currPos+meridianos,currPos+meridianos+1);
-            count++;
-            //left-up
-            edges[count] = new Edge(currPos+1, currPos+1+meridianos);
-            count++;
+         for(int i = 0; i < paralelos; i++){
+            for(int j = 0; j < meridianos; j++) {
+   
+               //to left
+               edges[count] = new Edge(vertex, vertex+meridianos+1);
+               myWriter.write("Edge: " +count+ " -> ("+vertex+", "+(vertex+meridianos+1)+")\n");
+               count++;
+               edges[count] = new Edge(vertex, vertex+1);
+               myWriter.write("Edge: " +count+ " -> ("+vertex+", "+(vertex+1)+")\n");
+               count++;
+               vertex++;
+            }
+            vertex++;
          }
+         myWriter.close();
+
+      } catch (IOException e) {
+         // TODO Auto-generated catch block
+         e.printStackTrace();
       }
 
-
-
-
-      edges[ 0] = new Edge( 0, 1 );
-      edges[ 1] = new Edge( 0, 2 );
-      edges[ 2] = new Edge( 0, 4 );
-      edges[ 3] = new Edge( 1, 3 );
-      edges[ 4] = new Edge( 1, 5 );
-      edges[ 5] = new Edge( 2, 3 );
-      edges[ 6] = new Edge( 2, 6 );
-      edges[ 7] = new Edge( 3, 7 );
-      edges[ 8] = new Edge( 4, 5 );
-      edges[ 9] = new Edge( 4, 6 );
-      edges[10] = new Edge( 5, 7 );
-      edges[11] = new Edge( 6, 7 );
-
-
-
-      
-      
-    
       canvas = new DisplayPanel();  // Create drawing surface and 
       setContentPane(canvas);       //    install it as the applet's content pane.
    
@@ -150,11 +151,13 @@ public class WireframeJApplet extends JApplet
 
             // project vertices onto the 2D viewport
             Point[] points;
+            Point3D[] temp;
+            temp = new Point3D[vertices.length];
             points = new Point[ vertices.length ];
             int j;
             int scaleFactor = width/8;
-            float near = 3;  // distance from eye to near plane
-            float nearToObj = 1.5f;  // distance from near plane to center of object
+            float near = 20;  // distance from eye to near plane
+            float nearToObj = 1f;  // distance from near plane to center of object
             for ( j = 0; j < vertices.length; ++j ) {
                float x0 = vertices[j].x;
                float y0 = vertices[j].y;
@@ -169,6 +172,8 @@ public class WireframeJApplet extends JApplet
                x1 = x1*near/(z1+near+nearToObj);
                y1 = y1*near/(z1+near+nearToObj);
 
+               temp[j] = new Point3D(x1, y1, 0);
+
                // the 0.5 is to round off when converting to int
                points[j] = new Point(
                   (int)(width/2 + scaleFactor*x1 + 0.5),
@@ -176,15 +181,24 @@ public class WireframeJApplet extends JApplet
                );
             }
 
-            // for ( j = 0; j < vertices.length; j++ ) {
-            //    System.out.println("(" + vertices[j].x + ", " + vertices[j].y + ", " + vertices[j] + ")");
-            // }
+            try {
+               FileWriter myWriter = new FileWriter("currentRotation.txt");
+      
+               for(int i = 0; i < temp.length; i++){
+                  myWriter.write("Count: " + i + "-> ("+temp[i].x+", "+temp[i].y+")\n");
+               }
+               myWriter.close();
+      
+            } catch (IOException e) {
+               // TODO Auto-generated catch block
+               e.printStackTrace();
+            }
 
             // draw the wireframe
             g.setColor( Color.black );
             g.fillRect( 0, 0, width, height );
             g.setColor( Color.white );
-            for ( j = 0; j < edges.length; ++j ) {
+            for ( j = 0; j < edges.length; j++ ) {
                g.drawLine(
                   points[ edges[j].a ].x, points[ edges[j].a ].y,
                   points[ edges[j].b ].x, points[ edges[j].b ].y
