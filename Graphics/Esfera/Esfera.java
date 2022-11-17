@@ -1,3 +1,9 @@
+// Programa que renderiza un wireframe de esfera en base al numero de meridianos y paralelos
+// Carlos Daniel Diaz Arrazate - A01734902
+// Jose Angel Gonzalez Carrera - A01552274
+// Carlos Eduardo Ruiz Lira - A01735706
+// 16/11/22
+
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 

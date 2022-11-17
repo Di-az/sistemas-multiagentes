@@ -1,3 +1,9 @@
+// Programa que renderiza un wireframe de esfera en base al numero de meridianos y paralelos
+// Carlos Daniel Diaz Arrazate - A01734902
+// Jose Angel Gonzalez Carrera - A01552274
+// Carlos Eduardo Ruiz Lira - A01735706
+// 16/11/22
+
 
 import java.awt.*;
 import java.awt.event.*;
@@ -56,58 +62,37 @@ public class WireframeJApplet extends JApplet
       vertices = new Point3D[(meridianos+1)*(paralelos+1)];
       int count = 0;
 
-      try {
-         FileWriter myWriter = new FileWriter("vertex.txt");
-
-         for(int i = 0; i < paralelos+1; i++){
-            float latitude = map(i,0, paralelos, 0, Math.PI);
+      for(int i = 0; i < paralelos+1; i++){
+         float latitude = map(i,0, paralelos, 0, Math.PI);
    
-            for(int j = 0; j < meridianos+1; j++) {
-               float longitude = map(j,0,meridianos,0, 2*Math.PI);
+         for(int j = 0; j < meridianos+1; j++) {
+            float longitude = map(j,0,meridianos,0, 2*Math.PI);
                
-               float x = (float) (radius * Math.sin(latitude) * Math.cos(longitude));
-               float y = (float) (radius * Math.sin(latitude) * Math.sin(longitude));
-               float z = (float) (radius * Math.cos(latitude));
+            //convert polar coordinates to cartesian
+            float x = (float) (radius * Math.sin(latitude) * Math.cos(longitude));
+            float y = (float) (radius * Math.sin(latitude) * Math.sin(longitude));
+            float z = (float) (radius * Math.cos(latitude));
                
-               myWriter.write("Count: " +count + " -> ("+x+", "+y+","+z+")\n");
-               vertices[count] = new Point3D(x, y, z);
-               count++;
-            }
+            vertices[count] = new Point3D(x, y, z);
+            count++;
          }
-         myWriter.close();
-
-      } catch (IOException e) {
-         // TODO Auto-generated catch block
-         e.printStackTrace();
       }
-
 
       edges = new Edge[2*meridianos*paralelos];
       count = 0;
       int vertex = 0;
 
-      try {
-         FileWriter myWriter = new FileWriter("edges.txt");
+      for(int i = 0; i < paralelos; i++){
+         for(int j = 0; j < meridianos; j++) {
 
-         for(int i = 0; i < paralelos; i++){
-            for(int j = 0; j < meridianos; j++) {
-   
-               //to left
-               edges[count] = new Edge(vertex, vertex+meridianos+1);
-               myWriter.write("Edge: " +count+ " -> ("+vertex+", "+(vertex+meridianos+1)+")\n");
-               count++;
-               edges[count] = new Edge(vertex, vertex+1);
-               myWriter.write("Edge: " +count+ " -> ("+vertex+", "+(vertex+1)+")\n");
-               count++;
-               vertex++;
-            }
+            //to left
+            edges[count] = new Edge(vertex, vertex+meridianos+1);
+            count++;
+            edges[count] = new Edge(vertex, vertex+1);
+            count++;
             vertex++;
          }
-         myWriter.close();
-
-      } catch (IOException e) {
-         // TODO Auto-generated catch block
-         e.printStackTrace();
+         vertex++;
       }
 
       canvas = new DisplayPanel();  // Create drawing surface and 
@@ -151,13 +136,11 @@ public class WireframeJApplet extends JApplet
 
             // project vertices onto the 2D viewport
             Point[] points;
-            Point3D[] temp;
-            temp = new Point3D[vertices.length];
             points = new Point[ vertices.length ];
             int j;
             int scaleFactor = width/8;
             float near = 20;  // distance from eye to near plane
-            float nearToObj = 1f;  // distance from near plane to center of object
+            float nearToObj = 7.5f*radius;  // distance from near plane to center of object
             for ( j = 0; j < vertices.length; ++j ) {
                float x0 = vertices[j].x;
                float y0 = vertices[j].y;
@@ -172,26 +155,11 @@ public class WireframeJApplet extends JApplet
                x1 = x1*near/(z1+near+nearToObj);
                y1 = y1*near/(z1+near+nearToObj);
 
-               temp[j] = new Point3D(x1, y1, 0);
-
                // the 0.5 is to round off when converting to int
                points[j] = new Point(
                   (int)(width/2 + scaleFactor*x1 + 0.5),
                   (int)(height/2 - scaleFactor*y1 + 0.5)
                );
-            }
-
-            try {
-               FileWriter myWriter = new FileWriter("currentRotation.txt");
-      
-               for(int i = 0; i < temp.length; i++){
-                  myWriter.write("Count: " + i + "-> ("+temp[i].x+", "+temp[i].y+")\n");
-               }
-               myWriter.close();
-      
-            } catch (IOException e) {
-               // TODO Auto-generated catch block
-               e.printStackTrace();
             }
 
             // draw the wireframe
